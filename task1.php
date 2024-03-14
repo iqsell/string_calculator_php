@@ -149,7 +149,7 @@ function validateAndCalculate($expression)
                 case '/':
                     if ($b == 0) {
                         echo "Error: Деление на ноль\n";
-                        return;  // Exit with error message if division by zero is encountered
+                        return;
                     }
                     $result = $a / $b;
                     break;
@@ -158,7 +158,6 @@ function validateAndCalculate($expression)
         }
     }
 
-    // Output the calculated result
     echo "Результат: " . array_pop($resultStack) . "\n";
 }
 
