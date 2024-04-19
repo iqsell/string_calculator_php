@@ -1,164 +1,125 @@
 <?php
 
-$expression = readline('Введите выражение: ');
-validateAndCalculate($expression);
-
-function validateAndCalculate($expression)
+function isOperator($c)
 {
-    $error = false;
-
-    if (!preg_match('/^[\d\s\(\)\+\-\*\/\.]+$/', $expression)) {
-        echo "Error: Неверные символы в выражении\n";
-        $error = true;
-    }
-
-    if (strpos($expression, '\\') !== false) {
-        echo "Error: Неверный символ\n";
-        $error = true;
-    }
-
-    if (strpos($expression, '/0') !== false) {
-        echo "Error: Деление на ноль\n";
-        $error = true;
-    }
-
-    if ($error) {
-        return;
-    }
-
-    $tokens = str_split($expression);
-    $stack = [];
-    $num = '';
-
-    foreach ($tokens as $token) {
-        if (is_numeric($token) || $token == '.') {
-            $num .= $token;
-        } elseif (!empty($num)) {
-            $stack[] = $num;
-            $num = '';
-        }
-
-        if (in_array($token, ['+', '-', '*', '/'])) {
-            $stack[] = $token;
-        } elseif ($token == '(') {
-            $stack[] = $token;
-        } elseif ($token == ')') {
-            $temp = [];
-            while (($top = array_pop($stack)) != '(') {
-                array_unshift($temp, $top);
-            }
-
-            $postfix = [];
-            $operators = ['+', '-', '*', '/'];
-            $precedence = ['+' => 1, '-' => 1, '*' => 2, '/' => 2];
-            $tempStack = [];
-
-            foreach ($temp as $token) {
-                if (is_numeric($token)) {
-                    $postfix[] = $token;
-                } elseif (in_array($token, $operators)) {
-                    while (!empty($tempStack) && current($tempStack) != '(' && $precedence[current($tempStack)] >= $precedence[$token]) {
-                        $postfix[] = array_pop($tempStack);
-                    }
-                    $tempStack[] = $token;
-                }
-            }
-
-            while (!empty($tempStack)) {
-                $postfix[] = array_pop($tempStack);
-            }
-
-            $resultStack = [];
-
-            foreach ($postfix as $token) {
-                if (is_numeric($token)) {
-                    $resultStack[] = $token;
-                } elseif (in_array($token, $operators)) {
-                    $b = array_pop($resultStack);
-                    $a = array_pop($resultStack);
-
-                    switch ($token) {
-                        case '+':
-                            $result = $a + $b;
-                            break;
-                        case '-':
-                            $result = $a - $b;
-                            break;
-                        case '*':
-                            $result = $a * $b;
-                            break;
-                        case '/':
-                            if ($b == 0) {
-                                echo "Error: Деление на ноль\n";
-                                return;
-                            }
-                            $result = $a / $b;
-                            break;
-                    }
-                    $resultStack[] = $result;
-                }
-            }
-
-            $stack[] = array_pop($resultStack);
-        }
-    }
-
-    if (!empty($num)) {
-        $stack[] = $num;
-    }
-
-    $postfix = [];
-    $operators = ['+', '-', '*', '/'];
-    $precedence = ['+' => 1, '-' => 1, '*' => 2, '/' => 2];
-    $tempStack = [];
-
-    foreach ($stack as $token) {
-        if (is_numeric($token)) {
-            $postfix[] = $token;
-        } elseif (in_array($token, $operators)) {
-            while (!empty($tempStack) && current($tempStack) != '(' && $precedence[current($tempStack)] >= $precedence[$token]) {
-                $postfix[] = array_pop($tempStack);
-            }
-            $tempStack[] = $token;
-        }
-    }
-
-    while (!empty($tempStack)) {
-        $postfix[] = array_pop($tempStack);
-    }
-
-    $resultStack = [];
-
-    foreach ($postfix as $token) {
-        if (is_numeric($token)) {
-            $resultStack[] = $token;
-        } elseif (in_array($token, $operators)) {
-            $b = array_pop($resultStack);
-            $a = array_pop($resultStack);
-
-            switch ($token) {
-                case '+':
-                    $result = $a + $b;
-                    break;
-                case '-':
-                    $result = $a - $b;
-                    break;
-                case '*':
-                    $result = $a * $b;
-                    break;
-                case '/':
-                    if ($b == 0) {
-                        echo "Error: Деление на ноль\n";
-                        return;
-                    }
-                    $result = $a / $b;
-                    break;
-            }
-            $resultStack[] = $result;
-        }
-    }
-
-    echo "Результат: " . array_pop($resultStack) . "\n";
+    return ($c == '+' || $c == '-' || $c == '*' || $c == '/');
 }
 
+function getOperatorPriority($op)
+{
+    if ($op === '+' || $op === '-') {
+        return 1;
+    }
+    if ($op === '*' || $op === '/') {
+        return 2;
+    }
+    return 0;
+}
+
+function calculation($operand1, $operand2, $op)
+{
+    if (!preg_match('/^[\d\s\(\)\+\-\*\/\.]+$/', $operand1 . $op . $operand2)) {
+        return "Ошибка! Введены некорректные символы.";
+    }
+
+    if ($op === '+') {
+        return $operand1 + $operand2;
+    } else if ($op === '-') {
+        return $operand1 - $operand2;
+    } else if ($op === '*') {
+        if ($operand2 === 0 || $operand1 === 0) {
+            return "Ошибка! Деление на ноль!" . PHP_EOL;
+        } else {
+            return $operand1 * $operand2;
+        }
+    } else if ($op === '/') {
+        if ($operand1 === 0 || $operand2 === 0) {
+            return "Ошибка! Деление на ноль!" . PHP_EOL;
+        } else {
+            return $operand1 / $operand2;
+        }
+    }
+    return 0;
+}
+
+function calculateExample(&$example)
+{
+    $opStack = array();
+    $numStack = array();
+    $numDigits = 0;
+
+    for ($i = 0; $i < strlen($example); $i++) {
+        $c = $example[$i];
+
+        if (is_numeric($c)) {
+            $numDigits++;
+        }
+
+        if ($numDigits > 5) {
+            return "Ошибка! Введено более пяти чисел!";
+        }
+
+        if ($c === '(') {
+            $inParentheses = true;
+        } elseif ($c === ')') {
+            $inParentheses = false;
+            if (empty($numStack)) {
+                return "Ошибка! В скобках нету выражения!";
+            }
+        } else if (is_numeric($c) || $c === '.') {
+            $numStr = $c;
+            while ($i + 1 < strlen($example) && (is_numeric($example[$i + 1]) || $example[$i + 1] === '.')) {
+                $numStr .= $example[$i + 1];
+                $i++;
+            }
+
+            array_push($numStack, floatval($numStr));
+        } else if ($c === '(') {
+            array_push($opStack, '(');
+        } else if ($c === ')') {
+            while (end($opStack) != '(') {
+                $op = array_pop($opStack);
+                $operand2 = array_pop($numStack);
+                $operand1 = array_pop($numStack);
+
+                array_push($numStack, calculation($operand1, $operand2, $op));
+            }
+            array_pop($opStack);
+        } else if (isOperator($c)) {
+            while (!empty($opStack) && getOperatorPriority(end($opStack)) >= getOperatorPriority($c)) {
+                $op = array_pop($opStack);
+                $operand2 = array_pop($numStack);
+                $operand1 = array_pop($numStack);
+
+                array_push($numStack, calculation($operand1, $operand2, $op));
+            }
+            array_push($opStack, $c);
+        }
+    }
+
+    while (!empty($opStack)) {
+        $op = array_pop($opStack);
+        $operand2 = array_pop($numStack);
+        $operand1 = array_pop($numStack);
+
+        array_push($numStack, calculation($operand1, $operand2, $op));
+    }
+
+    return end($numStack);
+}
+
+echo "Введите пример: ";
+$example = readline();
+
+$verification = "0123456789()+-*/";
+
+for ($i = 0; $i < strlen($example); $i++) {
+    if (strpos($verification, $example[$i]) === false) {
+        echo "Ошибка! В примере содержится посторонние символы!" . PHP_EOL;
+        exit;
+    }
+}
+
+$result = calculateExample($example);
+echo "Ответ: " . $result . PHP_EOL;
 
